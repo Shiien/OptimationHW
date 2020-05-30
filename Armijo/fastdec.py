@@ -1,13 +1,15 @@
 import numpy as np
 import math
 
-
-def f(x):
-    return 3 * x * x * x * x - 4 * x * x * x - 12 * x * x
+# ff = open('test.md', 'w+', encoding='utf-8')
 
 
-def df(x):
-    return 12 * x * x * x - 12 * x * x - 12 * x
+def to_str(p):
+    x_str = str(p)
+    x_str = x_str[1:-1]
+    x_str = ','.join(x_str.split())
+    x_str = '(' + x_str + ')'
+    return x_str
 
 
 class UnOp:
@@ -88,16 +90,9 @@ class UnOp:
         x = x_0
         k = 1
 
-        def to_str(p):
-            x_str = str(p)
-            x_str = x_str[1:-1]
-            x_str = ','.join(x_str.split())
-            x_str = '(' + x_str + ')'
-            return x_str
-
         alpha = 1
         d = np.ones_like(x_0)
-        while np.sqrt((alpha * d).T @ (alpha * d)) > 5e-4:
+        while np.sqrt((alpha * d).T @ (alpha * d)) > 1e-5:
             d = self.get_d(x)
             phi = self.get_phi(x, d)
             dphi = self.get_dphi(x, d)
@@ -215,16 +210,91 @@ class Gloden:
         return self.ans, self.f(self.ans)
 
 
+def get_test_f():
+    tests = []
+    x_0 = []
+    names = []
+
+    def rosen_brock(x):
+        assert isinstance(x, np.ndarray) and len(x.shape) == 1
+        v = 0
+        for i in range(x.shape[0] - 1):
+            v += 100 * ((x[i + 1] - x[i] ** 2) ** 2) + (1 - x[i]) ** 2
+        return v
+
+    names.extend([f'\n rosenbrock function dim = {i}\n' for i in range(2, 10)])
+    tests.extend([rosen_brock for _ in range(2, 10)])
+    x_0.extend([np.random.normal(0, 0.01, size=[i]) for i in range(2, 10)])
+
+    def wood(x):
+        assert isinstance(x, np.ndarray) and len(x.shape) == 1
+        return 100 * ((x[0] * x[0] - x[1]) ** 2) + (x[0] - 1) ** 2 + (x[2] - 1) ** 2 + 90 * (
+                (x[2] * x[2] - x[3]) ** 2) + 10.1 * ((x[1] - 1) ** 2 + (x[3] - 1) ** 2) \
+               + 19.8 * (x[1] - 1) * (x[3] - 1)
+
+    names.append(f'\n wood function \n')
+    tests.append(wood)
+    x_0.append(np.random.normal(0, 0.5, size=[4]))
+
+    def powell(x):
+        return (x[0] + 10 * x[1]) ** 2 + 5 * ((x[2] - x[3]) ** 2) + (x[1] - 2 * x[2]) ** 4 + 10 * ((x[0] - x[3]) ** 4)
+
+    names.append(f'\n powell function \n')
+    tests.append(powell)
+    x_0.append(np.random.normal(0, 0.5, size=[4]))
+
+    def tube(x):
+        return 100 * ((x[1] - (x[0] ** 3)) ** 2) + (1 - x[0]) ** 2
+
+    names.append(f'\n 立方体 function \n')
+    tests.append(tube)
+    x_0.append(np.random.normal(0, 0.5, size=[2]))
+
+    def triple(x):
+        v = 0
+        cos_v = 0
+        for i in range(x.shape[0]):
+            cos_v += np.cos(x[i])
+        for i in range(x.shape[0]):
+            v += (x.shape[0] + (i + 1) * (1 - np.cos(x[i])) - np.sin(x[i]) - cos_v) ** 2
+        return v
+
+    names.extend([f'\n 三角 function dim = {i}\n' for i in range(2, 10)])
+    tests.extend([triple for _ in range(2, 10)])
+    x_0.extend([np.random.normal(0, 0.01, size=[i]) for i in range(2, 10)])
+
+    # def luo(x):
+    #     if x[0] >= 0:
+    #         theta = np.arctan(x[0] / x[1]) / 2 / np.pi
+    #     else:
+    #         theta = np.arctan(x[1] / x[0]) + np.pi
+    #         theta = theta / 2 / np.pi
+    #     return 100 * ((x[2] - 10 * theta) ** 2 + (np.sqrt(x[0] * x[0] + x[1] * x[1]) - 1) ** 2) + x[2] * x[2]
+    #
+    # names.append('\n螺旋形凹谷函数\n')
+    # tests.append(luo)
+    # x_0.append(np.random.normal(0, 0.01, size=3))
+    return tests, x_0, names
+
+
 if __name__ == '__main__':
     # V = Gloden(1, f, df)
     # a, v = V.calculate(-2, -1, epsilon=0.05, trace=True)
     # print(a, v)
     # print(df(0.5))
     def f(x):
-        assert isinstance(x, np.ndarray) and len(x.shape) == 1
-        return np.exp(x[0]) * (4 * x[0] * x[0] + 2 * x[1] * x[1] + 4 * x[0] * x[1] + 2 * x[1] + 1)
+        return np.exp(-x[0])+x[0]*x[0]
 
 
     S = UnOp(f, 'Armijo')
-    ans = S.calculate(np.array([-1, 1]))
-    print(ans, f(ans))
+    ans =S.calculate(np.array([1]))
+    print(f(ans))
+    # fs, xs, names = get_test_f()
+    # ap=[]
+    # for name, f, x in zip(names, fs, xs):
+    #     print(f'\\subsection{{{name}}}', file=ff)
+    #     S = UnOp(f, 'Armijo')
+    #     ans = S.calculate(x)
+    #     print('解为', to_str(ans), '最终答案为', f(ans), '标准答案为 0.0\n\n', file=ff)
+    #     ap.append(f(ans))
+    # print(np.mean(np.array(ap)))
